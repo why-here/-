@@ -587,6 +587,8 @@
 
   `time:该命令用于测算一个命令（即程序）的执行时间。它的使用非常简单，就像平时输入命令一样，不过在命令的前面加入一个time即可`
 
+`touch:修改文件的访问和修改时间`
+
   [Link](http://blog.csdn.net/ljianhui/article/details/11100625)
 
 ##### shell 统计文件中单词出现的次数
@@ -605,7 +607,17 @@ $ sudo lsof -i:21 # 查看 21 号端口是否被占用
 $ netstat -apn | grep 21 
 ```
 
+##### 找出出现次数最多的前三个 ip 及次数
 
+`sort ip.txt | uniq -c | sort -rn | head -n 3`
+
+sort 按 ASCII 码排序 -n 依照数值大小排序 -r 反向
+
+uniq -c 统计相邻的不重复项
+
+##### umask
+
+> umask 是设置系统创建文件时的默认权限**补码**，默认权限是 666 ，umask设为 244 ，则创建文件的权限为 422 .
 
 #### 网络编程
 
@@ -644,29 +656,90 @@ $ netstat -apn | grep 21
   >
   > 五层：物理层，链路层，网络层，传输层，应用层。
 
-
 #### 算法
 
-<<<<<<< HEAD:面试整理.md
-- 链表中环的入口结点
+##### 栈的压入、弹出序列
 
-  - 使用 std::set 存储节点， set::insert 返回 pair<iterator,bool> ，若插入没有重复节点，pair.second 返回 True ，若有重复节点，返回 False。
+- 模拟，最后判断栈是否为空；[Link](https://www.nowcoder.com/questionTerminal/d77d11405cc7470d82554cb392585106)
+- 弹出的元素，在压入序列中个弹出元素之前压入的元素都应该按逆序输出。
 
-  [Link](https://www.nowcoder.com/questionTerminal/253d2c59ec3e4bc68da16833f79a38e4)
+##### 包含 min 函数的栈
 
+- 维护两个栈分别用于保存数据以及当前最小数，压入时，最小栈压入当前最小的数（将最小栈的头与压入的数值做比较）。[Link](https://www.nowcoder.com/questionTerminal/4c776177d2c04c2494f2555c9fcc1e49)
 
-- ​
-  [求二叉树中两个节点的最低公共祖先节点](http://blog.csdn.net/wenqiang1208/article/details/64152061)
-  =======
+##### 数组中出现次数超过一半的数字 
+
+- 排序，数组中间的数可能时出现超过一半的数，验证之。
+- 遍历计数，目标数的计数将大于其余数的计数，因此遇到当前数相同的数加一，不同的数减一，计数为0时，取当前数；然后验证最后剩余的数是否出现超过一半。[Link](https://www.nowcoder.com/questionTerminal/e8a1b01a2df14cb2b228b30ee6a92163)
+
+##### 连续子数组的最大和 
+
+- 动态规划：F(i) =max(F(i-1) + array[i] , array[i]) ; res = max(res, F(i)); [Link](https://www.nowcoder.com/questionTerminal/459bd355da1549fa8a49e350bf3df484)
+
+##### 记录二叉树中和为 S 的所有路径
+
+- 利用深度优先算法遍历，记录链表，进入是 push 退出时 pop 。[Link](https://www.nowcoder.com/questionTerminal/b736e784e3e34731af99065031301bca)
+
+##### 二叉树深度
+
+- 递归：[Link](https://www.nowcoder.com/questionTerminal/435fb86331474282a3499955f0a41e8b)
+  ```c++
+  if(!pRoot) return 0 ;
+  return max(1+TreeDepth(pRoot->left), 1+TreeDepth(pRoot->right));
+  ```
+- 利用队列逐层遍历，记录层数
+
+##### 字符串的排列
+
+[Link](https://www.nowcoder.com/questionTerminal/fe6b651b66ae47d7acce78ffdd9a96c7) 
+
+<img allign="center" src="permutation.png">
+
+##### 复杂链表的复制
+
+- 在原链表的每个节点后面复制节点；设置随机指针；拆分链表，每个节点的 next 都指向下一个节点的 next （包括复制的节点）。[Link](https://www.nowcoder.com/questionTerminal/f836b2c43afc4b35ad6adc41ec941dba)
+
+##### 统计一个数字在排序数组中出现的次数。 
+
+- 二分查找，然后在查找结果的前后继续查找。
+- 若数组是 int 型，可对 k-0.5 和 k+0.5 分别进行二分查找，用结果相减。[Link](https://www.nowcoder.com/questionTerminal/e02fdb54d7524710a7d664d082bb7811)
+
+##### 数组除了两个数只出现一次，其他的数都出现两次。找到出现一次的数
+
+- 把所有的数异或保存，得到只出现一次的两个数异或的结果；以异或结果中的其中一个非 0 位为指标将数组划分为两组；分别对两组数异或得到两个只出现一次的数。[Link](https://www.nowcoder.com/questionTerminal/e02fdb54d7524710a7d664d082bb7811)
+
+##### 在递增数组中找到和为 S 的乘积最小的两个数
+
+- 用两个指针指向头部和尾部，如果和过大，向后移动尾部，和过小向前移动头部。[Link](https://www.nowcoder.com/questionTerminal/390da4f7a00f44bea7c2f3d19491311b)
+
+##### 丑数
+
+- 如果 p 是丑数，那么 p=2^x * 3^y * 5^z 。对于任何丑数p，那么 `2*p,3*p,5*p` 都是丑数。res[ix] 表示 res[ix]*3 候选的最小的丑数。[Link](https://www.nowcoder.com/questionTerminal/6aa9e04fc3794f68acf8778237ba065b)
+  ```c++
+  res[i] = min(res[i2]*2, min(res[i3]*3, res[i5]*5));
+  if(res[i] == res[i2]*2) i2++;
+  if(res[i] == res[i3]*3) i3++;
+  if(res[i] == res[i5]*5) i5++;
+  ```
+
+##### 链表中环的入口结点
+
+  - 使用 std::set 存储节点， set::insert 返回 pair<iterator,bool> ，若插入没有重复节点，pair.second 返回 True ，若有重复节点，返回 False。 [Link](https://www.nowcoder.com/questionTerminal/253d2c59ec3e4bc68da16833f79a38e4)
+
 ##### 求 1+2+3+ ... +n，不能使用循环和条件判断。
-- 使用递归+短路特点 `ans && (ans += Sum_Solution(n - 1));`
+- 使用递归+短路特点 `ans && (ans += Sum_Solution(n - 1));`[Link](https://www.nowcoder.com/questionTerminal/7a0da8fc483247ff8800059e12d7caf1)
 - 利用构造函数 `A *a = new A[n];` 每次重新计算时，需要重设值。
 
 
-##### [求二叉树中两个节点的最低公共祖先节点](http://blog.csdn.net/wenqiang1208/article/details/64152061)
->>>>>>> 8b4df16f7e55c289e30017b7f0af39a4fdd43cd0:README.md
+##### 求二叉树中两个节点的最低公共祖先节点
 
-- 找出2个链表的长度，然后让长的先走两个链表的长度差，然后再一起走，直到找到相同的值（因为2个链表用公共的尾部）
+- 是二叉搜索树：从树的根节点开始和两个输入的节点进行比较。 一个比当前节点大，一个比当前节点小，则当前节点为最低公共祖先。否则根据大小选择左/右子树进行比较。
+- 树的节点有指向父节点的指针：转换为求两个链表的第一个公共节点。
+- 没有指向父节点的指针：
+  - 非递归：用两个链表分别保存从根节点到输入的两个节点的路径，然后把问题转换成两个链表的最后公共节点。
+  - 递归：（1）如果两个节点分别在根节点的左子树和右子树，则返回根节点 （2）如果两个节点都在左子树，则递归处理左子树；如果两个节点都在右子树，则递归处理右子树 
+
+[Link](http://blog.csdn.net/wenqiang1208/article/details/64152061)
 
 ##### 两个栈实现队列+两个队列实现栈
 
@@ -1099,6 +1172,13 @@ $ netstat -apn | grep 21
   }
 ```
   [Link](http://www.runoob.com/cprogramming/c-variable-arguments.html)
+
+##### malloc/free 和 new/delete 的区别
+
+1. malloc/free 是 C/C++ 语言的标准库函数，new/delete 是 C++ 的运算符；
+2. new 能自动分配空间大小
+3. new/delete 会调用对象的构造函数/析构函数，malloc/free 仅仅分配/释放内存。
+4. new 返回对象指针，malloc 返回 void 指针。
 
 
 #### Python 特性
