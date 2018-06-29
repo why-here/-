@@ -89,12 +89,12 @@
   >
   > **四个隔离级别的对比** 
   >
-  >| 隔离级别 |  脏读  | 不可重复读 | 幻影读  |
-  >| :--: | :--: | :---: | :--: |
-  >| 未提交读 | YES  |  YES  | YES  |
-  >| 提交读  |  NO  |  YES  | YES  |
-  >| 可重复读 |  NO  |  NO   | YES  |
-  >| 可串行化 |  NO  |  NO   |  NO  |
+  > | 隔离级别 |  脏读  | 不可重复读 | 幻影读  |
+  > | :--: | :--: | :---: | :--: |
+  > | 未提交读 | YES  |  YES  | YES  |
+  > | 提交读  |  NO  |  YES  | YES  |
+  > | 可重复读 |  NO  |  NO   | YES  |
+  > | 可串行化 |  NO  |  NO   |  NO  |
   >
   > [Link](https://github.com/CyC2018/Interview-Notebook/blob/master/notes/%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86.md#%E5%9B%9B%E9%9A%94%E7%A6%BB%E7%BA%A7%E5%88%AB)
 
@@ -405,7 +405,7 @@
 -    当线程池的线程刚创建时，让他们进入阻塞状态：等待某个任务的到来。 如果任务来了，那就好办，唤醒其中一个线程，让它拿到任务去执行即可。
 -    BlockingQueue：一个线程调用它的take()方法取数据时， 如果这个Queue中没有数据，该线程会阻塞；同样，一个线程调用它的put方法放数据时，如果Queue满了， 也会阻塞。
 
-        [Link](https://mp.weixin.qq.com/s/fzIsN8DrLUj0NbcJiD6xSw) [实现](http://www.cppblog.com/Chosen/archive/2013/10/07/203568.html)
+              [Link](https://mp.weixin.qq.com/s/fzIsN8DrLUj0NbcJiD6xSw) [实现](http://www.cppblog.com/Chosen/archive/2013/10/07/203568.html)
 
 ##### 线程间通信与同步
 
@@ -658,6 +658,24 @@ uniq -c 统计相邻的不重复项
 
 #### 算法
 
+#### 判断是否是平衡二叉树
+
+- 从递归从跟节点左右子树的深度来判断，会重复遍历子树。
+- 从低向上判断，若子树是平衡树则返回深度。父节点根据子树的深度判断是否平衡，并返回结果或深度。[Link](https://www.nowcoder.com/questionTerminal/8b3b95850edb4115918ecebdf1b4d222)
+
+##### 把数组排成最小的数
+
+- 对vector容器内的数据进行排序，按照 将a和b转为string后，若 a＋b ，如 2 21 因为 212 < 221 所以 排序后为 21 2，然后将数字转换为 string 进行拼接。[Link](https://www.nowcoder.com/questionTerminal/8fecd3f8ba334add803bf2a06af1b993)
+
+##### 从1到n整数中1出现的次数
+
+- 遍历 10 进位，分别对高位和低位进行计数，分别对每个数位上有多少包含1的点进行分析，虽然会重复遍历某些数，但是只对指定数位上为 1 ，进行计数，所以不会重复计数。[Link](https://www.nowcoder.com/questionTerminal/bd7f978302044eee894445e244c7eee6)
+
+  ```c++
+  int a = n/i,b = n%i;
+  count=count+(a+8)/10*i+(a%10==1)*(b+1);
+  ```
+
 ##### 栈的压入、弹出序列
 
 - 模拟，最后判断栈是否为空；[Link](https://www.nowcoder.com/questionTerminal/d77d11405cc7470d82554cb392585106)
@@ -724,7 +742,7 @@ uniq -c 统计相邻的不重复项
 
 ##### 链表中环的入口结点
 
-  - 使用 std::set 存储节点， set::insert 返回 pair<iterator,bool> ，若插入没有重复节点，pair.second 返回 True ，若有重复节点，返回 False。 [Link](https://www.nowcoder.com/questionTerminal/253d2c59ec3e4bc68da16833f79a38e4)
+- 使用 std::set 存储节点， set::insert 返回 pair<iterator,bool> ，若插入没有重复节点，pair.second 返回 True ，若有重复节点，返回 False。 [Link](https://www.nowcoder.com/questionTerminal/253d2c59ec3e4bc68da16833f79a38e4)
 
 ##### 求 1+2+3+ ... +n，不能使用循环和条件判断。
 - 使用递归+短路特点 `ans && (ans += Sum_Solution(n - 1));`[Link](https://www.nowcoder.com/questionTerminal/7a0da8fc483247ff8800059e12d7caf1)
@@ -977,18 +995,18 @@ uniq -c 统计相邻的不重复项
   > - 步骤 2 ：从前向后，使数组C中的每个值等于其与前一项相加，这样数组C[A[i]]就变成了代表数组A中小于等于A[i]的元素个数
   >    - 步骤 3 ：反向填充目标数组B：将数组元素A[i]放在数组B的第C[A[i]]个位置（下标为C[A[i]] - 1），每放一个元素就将C[A[i]]递减
   >
-  >| 排序方法 |       平均情况        |     最好情况     |       最坏情况        |      辅助空间      | 稳定性  |    备注    |
-  >| :--: | :---------------: | :----------: | :---------------: | :------------: | :--: | :------: |
-  >| 冒泡排序 |     $O(n^2)$      |    $O(n)$    |     $O(n^2)$      |     $O(1)$     |  稳定  |  n 小时好   |
-  >| 选择排序 |     $O(n^2)$      |   $O(n^2)$   |     $O(n^2)$      |     $O(1)$     | 不稳定  |  n 小时好   |
-  >| 插入排序 |     $O(n^2)$      |    $O(n)$    |     $O(n^2)$      |     $O(1)$     |  稳定  |   有序的好   |
-  >| 希尔排序 | $O(nlogn)到O(n^2)$ | $O(n^{1.3})$ |     $O(n^2)$      |     $O(1)$     | 不稳定  |          |
-  >| 堆排序  |    $O(nlogn)$     |  $O(nlogn)$  |    $O(nlogn)$     |     $O(1)$     | 不稳定  |  n 大时好   |
-  >| 归并排序 |    $O(nlogn)$     |  $O(nlogn)$  |    $O(nlogn)$     |     $O(n)$     |  稳定  |  n 大时好   |
-  >| 快速排序 |    $O(nlogn)$     |  $O(nlogn)$  |     $O(n^2)$      | $O(logn)到O(n)$ | 不稳定  |   n 大时   |
-  >| 计数排序 |    $O(n + k)$     |  $O(n + k)$  |    $O(n + k)$     |   $O(n + k)$   |  稳定  | 可与基数排序配合 |
-  >| 基数排序 |    $O(n * dn)$    | $O(n * dn)$  |    $O(n * dn)$    |  $O(n * dn)$   |  稳定  |          |
-  >| 桶排序  |      $O(n)$       |    $O(n)$    | $O(nlogn)或O(n^2)$ |  $O(n + bn)$   |  稳定  |          |
+  > | 排序方法 |       平均情况        |     最好情况     |       最坏情况        |      辅助空间      | 稳定性  |    备注    |
+  > | :--: | :---------------: | :----------: | :---------------: | :------------: | :--: | :------: |
+  > | 冒泡排序 |     $O(n^2)$      |    $O(n)$    |     $O(n^2)$      |     $O(1)$     |  稳定  |  n 小时好   |
+  > | 选择排序 |     $O(n^2)$      |   $O(n^2)$   |     $O(n^2)$      |     $O(1)$     | 不稳定  |  n 小时好   |
+  > | 插入排序 |     $O(n^2)$      |    $O(n)$    |     $O(n^2)$      |     $O(1)$     |  稳定  |   有序的好   |
+  > | 希尔排序 | $O(nlogn)到O(n^2)$ | $O(n^{1.3})$ |     $O(n^2)$      |     $O(1)$     | 不稳定  |          |
+  > | 堆排序  |    $O(nlogn)$     |  $O(nlogn)$  |    $O(nlogn)$     |     $O(1)$     | 不稳定  |  n 大时好   |
+  > | 归并排序 |    $O(nlogn)$     |  $O(nlogn)$  |    $O(nlogn)$     |     $O(n)$     |  稳定  |  n 大时好   |
+  > | 快速排序 |    $O(nlogn)$     |  $O(nlogn)$  |     $O(n^2)$      | $O(logn)到O(n)$ | 不稳定  |   n 大时   |
+  > | 计数排序 |    $O(n + k)$     |  $O(n + k)$  |    $O(n + k)$     |   $O(n + k)$   |  稳定  | 可与基数排序配合 |
+  > | 基数排序 |    $O(n * dn)$    | $O(n * dn)$  |    $O(n * dn)$    |  $O(n * dn)$   |  稳定  |          |
+  > | 桶排序  |      $O(n)$       |    $O(n)$    | $O(nlogn)或O(n^2)$ |  $O(n + bn)$   |  稳定  |          |
   >
   > [基于比较](http://www.cnblogs.com/eniac12/p/5329396.html) [不基于比较](http://www.cnblogs.com/eniac12/p/5332117.html)
 
