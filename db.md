@@ -167,13 +167,13 @@
 >
 > >  分类：
 > >
-> > - B+ Tree 索引
+> >  - B+ Tree 索引
 > >   - MyISAM 实现：使用B+Tree作为索引结构，叶节点的data域存放的是数据记录的地址。
 > >   - InnoDB 实现：InnoDB的数据文件本身就是索引文件，所以InnoDB要求表必须有主键；InnoDB的辅助索引data域存储相应记录主键的值而不是地址。
 > >
 > >  [Link](http://blog.codinglabs.org/articles/theory-of-mysql-index.html)
 > >
-> > - 哈希索引： Hash 索引结构的特殊性，其检索效率非常高，索引的检索可以一次定位。
+> >  - 哈希索引： Hash 索引结构的特殊性，其检索效率非常高，索引的检索可以一次定位。
 > >
 > >   - 由于 Hash 索引比较的是进行 Hash 运算之后的 Hash 值，所以它只能用于等值的过滤，不能用于基于范围的过滤
 > >   - Hash 索引无法被用来避免数据的排序操作。
@@ -181,7 +181,7 @@
 > >
 > >   [Link](https://blog.csdn.net/oChangWen/article/details/54024063)
 > >
-> > - 全文索引：有时候有人叫倒排文档技术。先定义一个词库，然后在文章中查找每个词条(term)出现的频率和位置。这样就相当于对文件建立了一个以词库为目录的索引，这样查找某个词的时候就能很快的定位到该词出现的位置。
+> >  - 全文索引：有时候有人叫倒排文档技术。先定义一个词库，然后在文章中查找每个词条(term)出现的频率和位置。这样就相当于对文件建立了一个以词库为目录的索引，这样查找某个词的时候就能很快的定位到该词出现的位置。
 > >
 > >  **查询性能优化**：
 > >
@@ -189,9 +189,30 @@
 > >
 > >  用来分析 SQL 语句，分析结果中比较重要的字段有：
 > >
-> > - select_type : 查询类型，有简单查询、联合查询和子查询
-> > - key : 使用的索引
-> > - rows : 扫描的行数
+> >  - select_type : 查询类型，有简单查询、联合查询和子查询
+> >  - key : 使用的索引
+> >  - rows : 扫描的行数
+
+##### 外键
+
+> 外键的作用：保持数据一致性，完整性，主要目的是控制存储在外键表中的数据。 
+
+> 指定主键关键字： foreign key(列名)
+>
+> 引用外键关键字： references <外键表名>(外键列名)
+
+例子：
+
+> ```sql
+> create table temp(
+> id int,
+> name char(20),
+> foreign key(id) references outTable(id) on delete cascade on update cascade);
+> ```
+>
+> on delete和on update , 可设参数cascade(跟随外键改动), restrict(限制外表中的外键改动),set Null(设空值）,set Default（设默认值）,[默认]no action 
+>
+> 把 id 列设为 MySQL 外键，参照外表 outTable 的 id 列。当外键的值删除，本表中对应的列删除; 当外键的值改变 本表中对应的列值改变。 
 
 ##### SQL
 
@@ -231,3 +252,85 @@
 > > > 
 
 ##### NoSQL一览 [Link](https://www.cnblogs.com/vajoy/p/5471308.html)
+
+
+
+#### 题解
+
+limit : 限制返回的行数。可以有两个参数，第一个参数为起始行，从 0 开始；第二个参数为返回的总行数。 
+
+执行顺序：from -> join -> on -> where -> group by -> avg,sum,count,max ... -> having -> select -> distinct -> order by -> limit ;
+
+`select a.FirstName, a.Lastname, b.City, b.State from Person a left join Address b on a.PersonId=b.PersonId;` [Link 175 Combine Two Tables](https://leetcode.com/problems/combine-two-tables/description/)
+
+`select (SELECT DISTINCT Salary FROM Employee ORDER BY Salary DESC LIMIT 1 OFFSET 1) as SecondHighestSalary; ` [Link 176 Second Highest Salary](https://leetcode.com/problems/second-highest-salary/description/)
+
+`select Score, (select count(*) from (select distinct Score s from Scores) temp where s>=Score) Rank from Scores order by Score desc;` [Link 178 Rank Scores](https://leetcode.com/problems/rank-scores/description/)
+
+`select distinct l1.Num as ConsecutiveNums from Logs l1, Logs l2, Logs l3 where l1.Num=l2.Num and l2.Num=l3.Num and l2.Id=l1.Id+1 and l3.Id=l2.Id+1;` [Link 180 Consecutive Numbers](https://leetcode.com/problems/consecutive-numbers/description/) 
+
+`select E1.Name as Employee from Employee E1 join Employee E2 on E1.ManagerId=E2.Id and E1.Salary>E2.Salary;` [Link 181 Employees Earning More Than Their Managers](https://leetcode.com/problems/employees-earning-more-than-their-managers/description/)
+
+`select Email from (select Email, count(Email) c from Person group by Email) tmp where c>1; ` [Link 182 Duplicate Emails](https://leetcode.com/problems/duplicate-emails/description/)
+
+`select Name Customers from Customers a left join Orders b on a.Id=b.CustomerId where CustomerId is null;` [Link 183 Customers Who Never Order](https://leetcode.com/problems/customers-who-never-order/description/)
+
+`select d.Name Department, e.Name Employee, Salary from Employee e join Department d on e.DepartmentId=d.Id where (e.DepartmentId, Salary) in (select DepartmentId, max(Salary) from Employee group by DepartmentId);` [Link 184 Department Highest Salary](https://leetcode.com/problems/department-highest-salary/description/)
+
+`select d.Name Department, e1.Name Employee, Salary from Employee e1 join Department d on e1.DepartmentId=d.Id where 3 > (select count(distinct e2.Salary) from Employee e2 where e2.Salary>e1.Salary and e2.DepartmentId=e1.DepartmentId) order by 1,3 desc;` [Link 185 Department Top Three Salaries](https://leetcode.com/problems/department-top-three-salaries/description/)
+
+`delete p1 from Person p1, Person p2 where p1.Email=p2.Email and p1.Id>p2.Id;` [Link 196 Delete Duplicate Emails](https://leetcode.com/problems/delete-duplicate-emails/description/)
+
+`select w1.Id from Weather w1, Weather w2 where datediff(w1.RecordDate, w2.RecordDate)=1 and w1.Temperature>w2.Temperature;` [Link 197 Rising Temperature](https://leetcode.com/problems/rising-temperature/description/)
+
+```sql
+SELECT Request_at AS Day , 
+ROUND(SUM(Status = 'cancelled_by_driver' OR Status = 'cancelled_by_client') /count(*), 2) 
+AS 'Cancellation Rate' 
+FROM 
+Trips tp, Users us 
+WHERE us.Users_id = Client_id AND 
+      us.Banned = 'No' AND 
+      tp.Request_at >= '2013-10-01' AND tp.Request_at <= '2013-10-03'  
+GROUP BY 
+      tp.Request_at 
+```
+
+[Link 262 Trips and Users](https://leetcode.com/problems/trips-and-users/description/)
+
+`select class from courses group by class having count(distinct student)>=5;` [Link 596 Classes More Than 5 Students](https://leetcode.com/problems/classes-more-than-5-students/description/)
+
+```sql
+select distinct s1.* from stadium as s1, stadium as s2, stadium as s3
+where
+    ((s1.id + 1 = s2.id and s1.id + 2 = s3.id)
+    or (s1.id - 1 = s2.id and s1.id + 1 = s3.id)
+    or (s1.id - 2 = s2.id and s1.id - 1 = s3.id))
+    and s1.people >= 100 and s2.people >= 100 and s3.people >= 100
+order by s1.id
+```
+
+[Link 601 Human Traffic of Stadium](https://leetcode.com/problems/human-traffic-of-stadium/description/)
+
+`select * from cinema where id%2=1 and description != 'boring' order by rating desc;` [Link 620 Not Boring Movies](https://leetcode.com/problems/not-boring-movies/description/)
+
+```sql
+select
+if(id < (select count(*) from seat), if(id mod 2=0, id-1, id+1), if(id mod 2=0, id-1, id)) as id, student
+from seat
+order by id asc;
+```
+
+[Link 626 Exchange Seats](https://leetcode.com/problems/exchange-seats/description/)
+
+```sql
+UPDATE salary
+SET
+    sex = CASE sex
+        WHEN 'm' THEN 'f'
+        ELSE 'm'
+    END;
+```
+
+[Link 627 Swap Salary](https://leetcode.com/problems/swap-salary/description/)
+
