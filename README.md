@@ -9,22 +9,15 @@
 
 ##### 基础
 
-[algorithm](./algorithm.md)
-
-[database](db.md)
-
-[language](language.md)
-
-[operating system](os.md)
-
-[network，design mode and others](network_design_others.md)
+- [algorithm](./algorithm.md)
+- [database](db.md)
+- [language](language.md)
+- [operating system](os.md)
+- [network，design mode and others](network_design_others.md)
 
 ##### 某项
 
-[obss](obss.md)
-
-[tensorflow](tf.md)
-
-[bag problem](bag.md)
-
-[dji](dji.md)
+- [obss](obss.md)
+- [tensorflow](tf.md)
+- [bag problem](bag.md)
+- [dji](dji.md)
