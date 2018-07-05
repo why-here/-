@@ -6,6 +6,8 @@
 
 ### FPGA 设计
 
+[FPGA_Design_Flow](FPGA_Design_Flow.md)
+
 ### Caffe TensorFlow 平台
 
 ##### Caffe

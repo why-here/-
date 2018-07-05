@@ -121,7 +121,7 @@ saver.restore(sess, "/tmp/model.ckpt")
 
 和标准答案对比，计算 F1 Score。赛题并不是对整个数据进行标注然后评估，而是对数据进行正负样本的抽样标注。
 
-<img align="center" src="f1score.png"/>
+<img align="center" src="imgs/f1score.png"/>
 
 #### recall 召回率
 
@@ -129,13 +129,13 @@ saver.restore(sess, "/tmp/model.ckpt")
 
 召回率是计算**数据中对正样本预测的正确率**。TP 表示正样本预测为正类，FN 表示正样本预测为负类。（考虑漏警）
 
-<img allign="center" src="recall.svg">
+<img allign="center" src="imgs/recall.svg">
 
 #### precision 精准率
 
 精准率是计算**预测结果中预测为正类中的正确率**。TP 正类预测为正类，FP 负类预测为正类。（考虑虚警）
 
-<img allign="center" src="precision.svg">
+<img allign="center" src="imgs/precision.svg">
 
 #### accuracy 准确率
 
@@ -153,7 +153,7 @@ AUC（Area Under Curve）被定义为ROC曲线下的面积，显然这个面积�
 
 随机挑选一个正样本以及一个负样本，分类器判定正样本的值高于负样本的概率就是 AUC 值。 
 
-<img allign="center" src="auc.png">
+<img allign="center" src="imgs/auc.png">
 
 > 既然已经这么多评价标准，为什么还要使用ROC和AUC呢？因为ROC曲线有个很好的特性：当测试集中的正负样本的分布变化的时候，ROC曲线能够保持不变。在实际的数据集中经常会出现类不平衡（class imbalance）现象，即负样本比正样本多很多（或者相反） 
 
