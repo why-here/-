@@ -339,3 +339,19 @@
 > > |  桶排序  |       $O(n)$       |    $O(n)$    | $O(nlogn)或O(n^2)$ |   $O(n + bn)$   |  稳定  |                  |
 > >
 > >  [基于比较](http://www.cnblogs.com/eniac12/p/5329396.html) [不基于比较](http://www.cnblogs.com/eniac12/p/5332117.html)
+
+##### 快排第 n 趟排序结果校验
+
+> 每趟排序就有一个元素排在了最终的位置上。那么就是说，第n趟结束，至少有n个元素已经排在了最终的位置上。 [Link](https://blog.csdn.net/u011240016/article/details/53149645)
+
+##### 矩阵链乘法
+
+> 对于一般的矩阵乘法来说，如矩阵A(m,n)与矩阵B(n,p)相乘需要进行的加法次数为`m*n*p`次乘法。 
+
+- [Link](https://blog.csdn.net/luoshixian099/article/details/46344175)
+
+##### 电影票问题
+
+> 模拟所有人买票过程，递归求解；拿50块钱的都能立即买票，拿100块钱的只有前面拿50块钱的多余100块钱的才能买票。
+
+- [Link](http://samuschen.iteye.com/blog/1158748)

@@ -195,6 +195,19 @@
 3. new/delete 会调用对象的构造函数/析构函数，malloc/free 仅仅分配/释放内存。
 4. new 返回对象指针，malloc 返回 void 指针。
 
+##### printf/cout 执行编译顺序
+
+- printf/cout 从右向左编译，从左向右输出，如 `cout << p << ++p;` 输出两个数值相等。
+
+##### 类变量初始化顺序
+
+- 初始化列表的执行顺序由变量的声明顺序决定。
+
+##### 构造/析构执行顺序
+
+- 先调用父类构造函数，再调用子类构造函数
+- 先调用子类析构函数，再调用父类析构函数
+
 #### Python 特性
 
 [Link](https://github.com/taizilongxu/interview_python)
