@@ -87,28 +87,28 @@
 >
 > >    半双工，单向，具有亲缘关系，内核缓冲区，无格式字节流，存在于内存中；无需具有亲缘关系，存在于文件系统中，内容存放在内存中。
 > >
-> > - 信号 (Signal)
+>  - 信号 (Signal)
 > >
 > >   信号是软件层次上对中断机制的一种模拟，是一种异步通信方式。
 > >
 > >   - 硬件来源：用户按键输入`Ctrl+C`退出、硬件异常如无效的存储访问等。
 > >   - 软件终止：终止进程信号、其他进程调用kill函数、软件异常产生信号。
 > >
-> > - 消息队列 (Message)
+>  - 消息队列 (Message)
 > >
 > >   消息队列是消息的链表，具有特定的格式，可随机查询，无需等待写入
 > >
-> > - 共享内存 (share memory)
+>  - 共享内存 (share memory)
 > >
 > >   使得多个进程可以可以直接读写同一块内存空间，是最快的可用 IPC 形式。需要依靠某种同步机制（如信号量）来达到进程间的同步及互斥。
 > >
-> > - 信号量 (semaphore)
+>  - 信号量 (semaphore)
 > >
 > >   信号量是一个计数器，用于多进程对共享数据的访问，信号量的意图在于进程间同步。信号量值的测试及减 1 操作应当是原子操作。
 > >
 > >   互斥量用于线程的互斥，信号量用于线程的同步。
 > >
-> > - 套接字 (socket)
+>  - 套接字 (socket)
 > >
 > >   客户/ 服务器（即要进行通信的进程）系统的开发工作既可以在本地单机上进行，也可以跨网络进行。
 > >
@@ -116,7 +116,8 @@
 > >
 > >   套接字的特性由3个属性确定，它们分别是：域(AF_INET, AF_UNIX) 、端口号、协议类型。
 > >
-> >  [Link](https://www.jianshu.com/p/c1015f5ffa74) [Demo](https://songlee24.github.io/2015/04/21/linux-IPC/)
+> 
+>  [Link](https://www.jianshu.com/p/c1015f5ffa74) [Demo](https://songlee24.github.io/2015/04/21/linux-IPC/)
 
 ##### 信号量与互斥量的区别
 
@@ -429,4 +430,53 @@ $ netstat -apn | grep 21
     $ find . -size +1000c -print # 查找当前目录大于1K的文件
     ```
 
-    
+
+##### shell 信号
+
+- 挂起，运行
+
+```shell
+$ ctrl+z : # 停止进程并放入后台，SIGSTP 信号
+$ ctrl+c ：# 终止进程 SIGINT
+$ ctrl+d : # 输入 EOF
+$ ./game.e 1 & # & 放在启动参数后面表示设置此进程为后台进程
+$ jobs # 显示当前暂停进程
+$ bg %n # 使第 n 个任务在后台运行
+$ fg %n # 使第 n 个任务在前台运行
+```
+
+- kill
+
+```shell
+$ kill -l # 列出所有信号
+$ kill -l CONT # 打印出信号对应的序号
+$ # HUP 1 终端断线 / INT 2 中断（ctrl+c）/ QUIT 3 退出（ctrl+\）/ TERM 15 终止（默认）/ KILL 9 强制终止 / CONT 18 继续（fg/bg）/ STOP 19 暂停（ctrl+z）
+$ kill -9 $(ps -ef | grep user)
+$ kill -u user # 杀死指定用户所有进程
+```
+
+##### 守护进程
+
+> ["守护进程"](http://baike.baidu.com/view/53123.htm)（daemon）就是一直在后台运行的进程（daemon）。类似Windows服务 ，并且不会因Shell退出而退出 。
+
+创建守护进程方法：
+
+1. 改成后台任务，利用 `&` 或者 `ctrl-z + bg`  ；按 `ctrl-d` 退出当前 session （shell），保留后台任务继续运行。
+2. 改成后台任务；使用 `disown` 命令；可以将指定任务从"后台任务"列表（`jobs`命令的返回结果）之中移除。一个"后台任务"只要不在这个列表之中，session 就肯定不会向它发出`SIGHUP`信号。 
+3. 读写 I/O ，发现不存在会报错终止执行。需要对后台任务的标准 I/O 进行重定向。 `node server.js > stdout.txt 2> stderr.txt < /dev/null &`
+4. `nohup node server.js &`；nohup 做了三件事：阻止`SIGHUP`信号发到这个进程；关闭标准输入。该进程不再能够接收任何输入，即使运行在前台；重定向标准输出和标准错误到文件`nohup.out`。
+5. 使用终端复用器：`Screen` 和 `Tmux` ；可以在当前 session 里面，新建另一个 session 。
+
+后台任务特点：
+
+1. 继承当前 session （对话）的标准输出（stdout）和标准错误（stderr）。因此，后台任务的所有输出依然会同步地在命令行下显示。
+2. 不再继承当前 session 的标准输入（stdin）。你无法向这个任务输入指令了。如果它试图读取标准输入，就会暂停执行（halt）。
+
+session 退出流程：
+
+1. 用户准备退出 session
+2. 系统向该 session 发出`SIGHUP`信号
+3. session 将`SIGHUP`信号发给所有子进程；（一般不会发送给后台任务，因此不会随着 session 一起退出。）
+4. 子进程收到`SIGHUP`信号后，自动退出
+
+[Link](http://www.ruanyifeng.com/blog/2016/02/linux-daemon.html)
