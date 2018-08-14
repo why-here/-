@@ -56,6 +56,14 @@
 
 #### 操作系统
 
+##### 分页与虚拟内存
+
+- 内存访问更为安全
+- 共享内存更为简单
+- 由于每个进程会有一套虚拟内存地址，那么每个进程都会有一个分页表。 
+
+[Link](https://mp.weixin.qq.com/s/1Cj4swUbw23VoxAI4XvNdQ)
+
 ##### 同步与异步
 
 > 所谓同步，就是在发出一个**调用**时，在没有得到结果之前，该*调用*就不返回。但是一旦调用返回，就得到返回值了。换句话说，就是由*调用者*主动等待这个**调用**的结果。
@@ -328,6 +336,21 @@
 
 #### Linux
 
+##### free
+
+- 查看系统中的内存使用情况
+
+##### 查看进程内存使用
+
+`ps aux | grep name` 得到进程 ID
+
+- `cat /proc/id/status`  查看占用大小
+- top -p id 查看
+
+##### 进入 root 
+
+`sudo su`
+
 ##### linux 下查找哪个文件占用空间最大的方法
 
   使用 du 命令 + sort 命令
@@ -480,3 +503,7 @@ session 退出流程：
 4. 子进程收到`SIGHUP`信号后，自动退出
 
 [Link](http://www.ruanyifeng.com/blog/2016/02/linux-daemon.html)
+
+##### select / poll / epoll
+
+[Link](https://blog.csdn.net/lixungogogo/article/details/52226501)
