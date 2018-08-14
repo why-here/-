@@ -1,5 +1,85 @@
 #### C++ 特性
 
+##### 智能指针
+
+- auto_ptr / unique_ptr / shared_ptr / weak_ptr 包含在 <memory> 头文件中。
+
+- **auto_ptr** 
+
+  - auto_ptr 是排他所有者模型，在 C++11 中弃用，由 unique_ptr 代替。
+
+      ```c++
+      auto_ptr<A> p1(new A); // p1 points to class A
+      p1->show(); // call the show function of A
+      p1.get(); // get the address
+      auto_ptr<A> p2(p1); // copy constructor called, this makes p1 empty
+      ```
+
+  - auto_ptr 的拷贝构造函数以及赋值运算符将被操作对象的指针设为空（假复制），来实现只有一个 auto_ptr 拥有该指针。
+  - 由于不能复制（假复制），不能在 STL 的容器中使用，所以被弃用。因为 STL 容器要求元素必须是可复制且可赋值的，并且不会互相影响。[Link](https://stackoverflow.com/questions/111478/why-is-it-wrong-to-use-stdauto-ptr-with-standard-containers)
+
+- **unique_ptr**
+
+  - 明确禁止复制构造以及赋值操作，可以通过 move 来转让指针，更加安全；支持数组。
+
+    ```c++
+    unique_ptr<A> p1(new A);
+    cout << p1.get() << endl;
+    unique_ptr<A> p2 = move(p1);   //  transfers ownership to p2
+    
+    unique_ptr<A> fun() {
+        unique_ptr<A> ptr(new A);
+        return ptr;                // can be captured;
+    }
+    ```
+
+- **shared_ptr**
+
+  - 是引用计数所有权模型，与所有 shared_ptr 副本共同维护指针的引用计数。只有引用计数等于 0 时，所指向的资源才会被释放。
+
+    ```c++
+    shared_ptr<A> p1(new A);
+    shared_ptr<A> p2(p1);
+    p1.get();
+    p2.use_count() // 2, Returns the number of shared_ptr objects referring to the same managed object
+    p1.reset();
+    p2.use_count() // 1
+    ```
+
+- **weak_ptr**
+
+  - weak_ptr 是作为 shared_ptr 的拷贝。能够访问 shared_ptr 所指向的内容，但不参与引用计数。可用来打破 shared_ptr 的循环依赖。[循环依赖](https://blog.csdn.net/Xiejingfa/article/details/50772571)
+
+  - 将其中一个 shared_ptr 声明为 weak_ptr ，破除环。使用 weak_ptr 访问时需要检查可用性。
+
+    ```c++
+    shared_ptr<A> sp(new A);
+    weak_ptr<A> wp(sp);
+    if(shared_ptr<A> p = wp.lock()) 
+    	...
+    wp.expired() // true - unavailable, false - available
+    ```
+
+  - weak_ptr 没有重载 operator-> 和 operator * ，因此不可直接通过 weak_ptr 使用对象，一般通过 lock 函数得到 shared_ptr 实例。
+
+  [Link](https://www.geeksforgeeks.org/auto_ptr-unique_ptr-shared_ptr-weak_ptr-2/)
+
+##### 拷贝构造函数 / 赋值运算符
+
+- 拷贝构造函数和赋值运算符的行为比较相似，都是将一个对象的值复制给另一个对象；但是其结果却有些不同，拷贝构造函数使用传入对象的值生成一个新的对象的实例，而赋值运算符是将对象的值复制给一个**已经存在的实例**。 
+
+  ```c++
+  Person p;
+  Person p1 = p;    // Copy Constructor
+  Person p2;
+  p2 = p;           // Assign
+  f(p2);            // Copy Constructor
+  p2 = f1();        // Copy Constructor then Assign
+  Person p3 = f1(); // Only call Copy Constructor once, directly construct p3, while not the temp instance
+  ```
+
+  [Link](https://www.cnblogs.com/wangguchangqing/p/6141743.html)
+
 ##### 编译过程
 
 - 源代码 --编译器--》汇编代码 --汇编器--》目标代码 --链接器--》可执行文件。
