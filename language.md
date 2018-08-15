@@ -1,5 +1,82 @@
 #### C++ 特性
 
+##### 线程
+
+- 线程随着 std::thread 类型实例的创建而创建。
+
+  ```c++
+  #include <thread>
+  thread t{func};
+  t.join();
+  $ g++ --std=c++11 -pthread hello_multithread.cpp
+  ```
+
+- 有三种创建线程的方式：简单函数、可调用实例的类型和 lambda 表达式。
+
+  ```c++
+  void do_some_work();
+  std::thread wk_thread{do_some_work};
+  ThreadTask task{42};
+  std::thread wk_thread{task};
+  std::thread wk_thread(ThreadTask());    // 1 函数声明
+  std::thread wk_thread{ThreadTask{}};    // 2 线程定义
+  std::thread wk_thread{[](){
+      do_something();
+  }};
+  ```
+
+- 线程结束控制：join 或者 detach 。join 主线程阻塞直到该子线程退出。detach 主线程丧失对子线程的控制，交给 C++ 运行时库。因此出现：主线程结束后，子线程仍在运行，可以作为守护线程；主线程结束随即资源销毁，子线程不能引用这些资源。
+
+  ```c++
+  if (join_me.joinable())       // 1
+      join_me.join();
+  if (detach_me.joinable())     // 1
+      detach_me.detach();
+  ```
+
+- 考虑用 RAII 思想，将线程封装在一个类中，防止资源泄露（避免未处理线程结束状态，导致调用了 terminate() ，终止整个程序）
+
+  ```c++
+  struct ThreadGuard {
+   private:
+      std::thread& t_;
+   public:
+      explicit ThreadGuard(std::thread& t) : t_(t) {}
+      ~ThreadGuard() {
+          if (this->t_.joinable())          // 1
+              this->t_.join();              // 2
+      }
+      ThreadGuard  (const ThreadGuard&) = delete;
+      ThreadGuard& operator=(const ThreadGuard&) = delete;
+  };
+  ```
+
+- 向线程传递参数，是将参数**拷贝**进线程类的内部存储空间，而后将参数传递给线程函数。当期望传入一个引用时，要使用`std::ref`进行转换 。应该避免传入可能被销毁的指针或者常量。
+
+- 可以以非静态成员函数作为线程函数，需要传入在线程运行期间不会被销毁的类实例。
+
+  ```c++
+  class Foo {
+   public:
+      void bar(void);
+  };
+  void demo() {
+      Foo baz;
+      std::thread temp_t{&Foo::bar, &baz};
+      temp_t.join();
+      return;
+  }
+  ```
+
+- 可以通过 move 改变线程的所有权。thread 是可移动但不可复制的。
+
+  ```c++
+  thread t1(f1);
+  thread t2(move(t1));
+  ```
+
+  [Link](https://liam0205.me/2017/05/16/first-step-on-multithread-programming-of-cxx/)
+
 ##### 智能指针
 
 - auto_ptr / unique_ptr / shared_ptr / weak_ptr 包含在 <memory> 头文件中。
