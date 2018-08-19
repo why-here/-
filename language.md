@@ -1,5 +1,45 @@
 #### C++ 特性
 
+##### 如何确定对象在 heap or stack
+
+- 根据栈和堆的相对位置，局部变量会在栈中生成。
+
+```c++
+boolean fromStack(void *ptr) {
+  int dummy;
+  return ptr > &dummy;
+}
+```
+
+##### lambda 表达式
+
+```c++
+[ capture clause ] (parameters) -> return-type  
+{   
+   definition of method   
+} 
+```
+
+- 捕获方式 [&] 按引用捕获所有外部变量；[=] 按值捕获所有外部变量；[a,&b] 指明变量的捕获方式。
+
+##### mutable 关键字
+
+- 修饰类的数据成员，使其在 const 成员函数中也可以被修改
+
+- 修饰 lambda 表达式按值传递，使其可以修改变量值（局部修改）
+
+  ```c++
+  int x{0};
+  auto f1 = [=]() mutable {x = 42;};  // okay, 创建了一个函数类型的实例
+  auto f2 = [=]()         {x = 42;};  // error, 不允许修改按值捕获的外部变量的值
+  ```
+
+  [Link](https://liam0205.me/2017/05/25/the-mutable-keyword-in-Cxx/)
+
+##### delete 如何知道大小
+
+在 new[] 返回指针的前一个地址会存储大小信息。
+
 ##### 线程
 
 - 线程随着 std::thread 类型实例的创建而创建。

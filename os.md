@@ -507,3 +507,557 @@ session 退出流程：
 ##### select / poll / epoll
 
 [Link](https://blog.csdn.net/lixungogogo/article/details/52226501)
+
+### C++ 并发编程
+
+#### 第一章 并发
+
+##### 1.1 并发方式
+
+- 多进程并发
+
+> 缺点：进程间通信设置复杂，速度慢（因为操作系统的保护措施）；进程有固定开销，需要启动时间，需要资源来管理进程。
+>
+> 优点：操作系统的安全保护以及更高级别的通信机制，可以更容易编写安全的并发代码；进程可以通过远程连接，实现多台机器的多进程。
+
+- 多线程并发
+
+> 优点：进程中的所有线程共享地址空间，全局变量仍是全局，指针、对象的引用或者数据可以在线程之间传递。而进程间共享内存难以建立和管理，同一数据的内存地址在不同的进程中是不相同的。
+>
+> 缺点：需要保证数据的一致性。
+
+##### 1.2 为何使用并发
+
+- 分离关注点
+
+> 将相关的代码与无关的代码分离，更容易理解和测试，例如将 DVD 播放程序的播放程序与用户响应程序分离。这种情况下，线程划分不再基于 CPU，而是基于功能的设计。
+
+- 性能
+
+> 并行。两种方式利用并发提高性能：
+>
+> 1. 任务并行：将单个任务分成几个部分，并行运行，降低总运行时间，任务间可能存在依赖。又称易并行
+> 2. 数据并行：每个线程在不同的数据部分上执行相同的操作。
+
+- 何时不用并发
+
+> 1. 任务运行快，比启动线程快。
+> 2. 线程是有限资源，运行太多的线程会耗尽进程的可用内存或地址空间。如 4GB 的地址空间，每个线程都有 1MB 的堆栈，那么 4096 个线程会用尽所有空间。可以用线程池来限制线程的数量。
+> 3. 线程越多，需要做越多的上下文切换。
+
+##### 1.3 C++ 中的并发和多线程
+
+- 第二章：管理线程；第三章：保护共享数据；第四章：线程间同步；第五章：低级原子操作
+
+##### 1.4 开始入门
+
+- hello world
+
+  ```c++
+  #include <iostream>
+  #include <thread>  //①
+  void hello()  //②
+  {
+    std::cout << "Hello Concurrent World\n";
+  }
+  int main()
+  {
+    std::thread t(hello);  //③
+    t.join();  //④
+  }
+  ```
+
+#### 第二章 线程管理
+
+内容：启动线程；等待线程接收或放在后台运行；传递参数；转移线程所有权；确定线程数以及识别特殊线程。
+
+##### 2.1 基础
+
+**2.1.1 启动线程**
+
+- 在为一个线程创建了一个 `std::thread` 对象后，需要等待这个线程结束。
+
+- 启动线程
+
+  ```c++
+  std::thread my_thread(f); // f 可以是普通函数，或者有函数调用符类型的实例
+  ```
+
+  若传入的是实例，则会被复制到新线程的存储空间中，执行和调用都在线程的内存空间中进行。**需注意**：如果传递一个临时变量，而不是一个命名的变量，编译器会将其解析为函数声明。1 和 2 可以解决该问题。
+
+  ```c++
+  std::thread my_thread(background_task()); // 相当于声明函数。
+  std::thread my_thread((background_task()));  // 1
+  std::thread my_thread{background_task()};    // 2
+  ```
+
+  传入 lambda 表达式
+
+  ```c++
+  std::thread my_thread([]{
+    do_something();
+    do_something_else();
+  });
+  ```
+
+- 注意
+
+> 1. 启动线程后要明确等待线程结束（join）还是让其自主运行（detach）。如果 thread **销毁**之前还未绝对，thread 的析构函数会调用 terminate 函数终止程序。
+> 2. 如果不等待进程，必须保证线程可访问数据的有效性。例如当线程还没结束，函数已经退出，局部变量的指针和引用就无效。可以将对象复制到线程中（注意指针和引用）
+
+**2.1.2 等待线程完成**
+
+- join() 简单粗暴的等待线程完成。并清理线程相关的存储部分。因此一个线程只能 join 一次。
+
+**2.1.3 异常等待线程完成**
+
+- 在有异常的情况下 join 。在 join 前出现异常，join 不会被调用到。有两种办法，用 try/catch 和 RAII 方法。
+
+  ```c++
+  // try catch
+  struct func; // 定义在清单2.1中
+  void f()
+  {
+    int some_local_state=0;
+    func my_func(some_local_state);
+    std::thread t(my_func);
+    try
+    {
+      do_something_in_current_thread();
+    }
+    catch(...)
+    {
+      t.join();  // 1 保证不管有没有异常都会调用 t.join()
+      throw;
+    }
+    t.join();  // 2
+  }
+  // RAII 在析构函数中使用 join()
+  class thread_guard
+  {
+    std::thread& t;
+  public:
+    explicit thread_guard(std::thread& t_):
+      t(t_)
+    {}
+    ~thread_guard()
+    {
+      if(t.joinable()) // 1
+      {
+        t.join();      // 2
+      }
+    }
+    thread_guard(thread_guard const&)=delete;   // 3
+    thread_guard& operator=(thread_guard const&)=delete;
+  };
+  
+  struct func; // 定义在清单2.1中
+  
+  void f()
+  {
+    int some_local_state=0;
+    func my_func(some_local_state);
+    std::thread t(my_func);
+    thread_guard g(t);
+    do_something_in_current_thread(); // 即使异常 thread_guard 的析构也会被调用
+  }    // 4
+  ```
+
+**2.1.4 后台运行线程**
+
+- detach() 让线程在后台运行。不用等待该线程结束。C++ 运行库会负责资源回收。分离线程又称为守护线程。
+
+##### 2.2 传递参数
+
+- 可以传递默认参数以及字符串字面值。若传递动态变量，尽量提前进行转换。
+
+- thread 会将参数复制到其独立内存中，就无法试图通过引用保存更改结果。可以使用 `std::ref` 将参数转换成引用。
+
+-  传递一个成员函数作为线程函数，并提供一个合适的对象指针作为第一个参数。
+
+- 移动传递参数，如 unique_ptr ：当原变量是一个临时变量是，自动进行移动操作，但当原对象是一个命名变量，就需要使用 `std::move()` 显示移动。
+
+- 转移执行线程的所有权：thread 可移动不可复制，与 unique_ptr 类似。
+
+  ```c++
+  // 传递常量
+  void f(int i, std::string const& s);
+  std::thread t(f, 3, "hello");
+  // 传递引用
+  std::thread t(update_data_for_widget,w,std::ref(data));
+  // 调用成员函数
+  X my_x;
+  std::thread t(&X::do_lengthy_work,&my_x); // 1
+  // 移动
+  void process_big_object(std::unique_ptr<big_object>);
+  std::unique_ptr<big_object> p(new big_object);
+  std::thread t(process_big_object,std::move(p));
+  ```
+
+##### 2.3 转移线程所有权
+
+- 移动
+
+  ```c++
+  void some_function();
+  void some_other_function();
+  std::thread t1(some_function);            // 1
+  std::thread t2=std::move(t1);            // 2
+  t1=std::thread(some_other_function);    // 3 临时变量将会隐式调用移动操作
+  std::thread t3;                            // 4
+  t3=std::move(t2);                        // 5
+  t1=std::move(t3);                        // 6 赋值操作将使程序崩溃，调用 std::terminate() 
+  ```
+
+- thread 在函数间转移
+
+  ```c++
+  std::thread f()
+  {
+    void some_function();
+    return std::thread(some_function);
+  }
+  
+  std::thread g()
+  {
+    void some_other_function(int);
+    std::thread t(some_other_function,42);
+    return t; // 编译器自动执行移动操作
+  }
+  
+  void f(std::thread t);
+  std::thread t(some_function);
+  f(std::move(t));
+  ```
+
+- 创建 thread_guard 类管理 thead
+
+  ```c++
+  class scoped_thread
+  {
+    std::thread t;
+  public:
+    explicit scoped_thread(std::thread t_):                 // 1
+      t(std::move(t_))
+    {
+      if(!t.joinable())                                     // 2
+        throw std::logic_error(“No thread”);
+    }
+    ~scoped_thread()
+    {
+      t.join();                                            // 3
+    }
+    scoped_thread(scoped_thread const&)=delete;
+    scoped_thread& operator=(scoped_thread const&)=delete;
+  };
+  
+  struct func; // 定义在清单2.1中
+  
+  void f()
+  {
+    int some_local_state;
+    scoped_thread t(std::thread(func(some_local_state)));    // 4
+    do_something_in_current_thread();
+  }                                                        // 5
+  ```
+
+- 用 vector 存 thread
+
+  ```c++
+  void do_work(unsigned id);
+  
+  void f()
+  {
+    std::vector<std::thread> threads;
+    for(unsigned i=0; i < 20; ++i)
+    {
+      threads.push_back(std::thread(do_work,i)); // 产生线程
+    } 
+    std::for_each(threads.begin(),threads.end(),
+                    std::mem_fn(&std::thread::join)); // 对每个线程调用join()
+  }
+  ```
+
+##### 2.4 运行时决定线程数量
+
+- `std::thread::hardware_concurrency()` 可以返回一个程序中能并行的线程数量。
+- 实现并行版的 accumulate
+
+##### 2.5 识别线程
+
+- 线程标识符类型 `std::thread::id` 可以通过 thread 对象的 get_id() 直接获取。也可以在当前对象中调用 `std::this_thread::get_id()` 获得。
+
+#### 第三章 线程间共享数据
+
+内容：共享数据带来的问题；使用互斥量保护数据；数据保护的替代方案
+
+##### 3.1 共享数据带来的问题
+
+- 共享数据修改所导致的。
+- 不变量：如双链表中的两个指针就是不变量，为了删除节点，其两边节点的指针都要更新，当一边更新完成，不变量就被破坏了，两边都更新完成，不变量就稳定了。
+
+**3.1.1 条件竞争**
+
+- 恶性条件竞争通常发生于完成对多于一个的数据块的修改时。
+
+**3.1.2 避免恶性条件竞争**
+
+- 对数据结果采用保护机制确保只有进行修改的线程才能看到不变量被破坏时的中间状态。
+
+##### 3.2 使用互斥量保护共享数据
+
+**3.2.1 使用互斥量**
+
+- 实例化 `std::mutex` 创建互斥量，调用 lock() 上锁，调用 unlock() 解锁。C++ 标准库提供一个 RAII 语法的模板类 `std::lock_guard()` ，在构造的时候已锁的互斥量，并在析构的时候进行解锁。
+
+  ```c++
+  #include <list>
+  #include <mutex>
+  #include <algorithm>
+  
+  std::list<int> some_list;    // 1
+  std::mutex some_mutex;    // 2
+  
+  void add_to_list(int new_value)
+  {
+    std::lock_guard<std::mutex> guard(some_mutex);    // 3
+    some_list.push_back(new_value);
+  }
+  ```
+
+- 大多数情况下，互斥量会与保护的数据放在同一个类中，并把对数据操作的函数作为成员函数。但当成员函数返回的时保护数据的指针或引用时，会破坏对数据的保护。
+
+**3.2.2 精心组织代码来保护数据**
+
+- 切勿将受保护数据的指针或引用传递到互斥锁作用域之外，无论是函数返回值，还是存储在外部可见内存，亦或是以参数的形式传递到用户提供的函数中去。 
+
+**3.2.3 发现接口内在的条件竞争**
+
+- 如双链表的例子中，删除一个节点，需要确保对三个节点的并发访问。可以使用互斥量来保护整个链表。
+
+- 多个接口一起作用：如一个栈，`empty()` 返回时是正确的，但在调用 `top()` 时，可能其他线程对栈做了其他操作，致使栈为空。`top()` 和 `pop()` 也会有竞争。
+
+  ```c++
+  stack<int> s;
+  if (! s.empty()){    // 1
+    int const value = s.top();    // 2
+    s.pop();    // 3
+    do_something(value);
+  }
+  ```
+
+- `stack<vector<int>>` 当系统负荷较大，pop() 弹出，`vector<int>` 分配异常，导致数据丢失，所以将 pop() 分为 top() 和 pop() 两步。但这造成了竞争。
+
+  ```c++
+  // 线程安全的堆栈，简化接口，只留 pop 和 push 以及 empty，pop 空抛出异常。
+  #include <exception>
+  #include <memory>
+  #include <mutex>
+  #include <stack>
+  
+  struct empty_stack: std::exception
+  {
+    const char* what() const throw() {
+      return "empty stack!";
+    };
+  };
+  
+  template<typename T>
+  class threadsafe_stack
+  {
+  private:
+    std::stack<T> data;
+    mutable std::mutex m;
+  
+  public:
+    threadsafe_stack()
+      : data(std::stack<T>()){}
+  
+    threadsafe_stack(const threadsafe_stack& other)
+    {
+      std::lock_guard<std::mutex> lock(other.m);
+      data = other.data; // 1 在构造函数体中的执行拷贝
+    }
+  
+    threadsafe_stack& operator=(const threadsafe_stack&) = delete;
+  
+    void push(T new_value)
+    {
+      std::lock_guard<std::mutex> lock(m);
+      data.push(new_value);
+    }
+  
+    std::shared_ptr<T> pop()
+    {
+      std::lock_guard<std::mutex> lock(m);
+      if(data.empty()) throw empty_stack(); // 在调用pop前，检查栈是否为空
+  
+      std::shared_ptr<T> const res(std::make_shared<T>(data.top())); // 在修改堆栈前，分配出返回值
+      data.pop();
+      return res;
+    }
+  
+    void pop(T& value)
+    {
+      std::lock_guard<std::mutex> lock(m);
+      if(data.empty()) throw empty_stack();
+  
+      value=data.top();
+      data.pop();
+    }
+  
+    bool empty() const
+    {
+      std::lock_guard<std::mutex> lock(m);
+      return data.empty();
+    }
+  };
+  ```
+
+- 细粒度锁能带来更好的性能，但会有更多的竞争。同时一个给定的操作需要两个或两个以上的互斥量时，可能会出现死锁。
+
+**3.2.4 死锁：问题描述及解决方案**
+
+- 避免死锁的一般建议，就是让两个互斥量总以相同的顺序上锁：总在互斥量B之前锁住互斥量A，就永远不会死锁。 
+
+- 不是万能：多个互斥量琐多个实例，实例要交换，先锁第一个参数再锁第二个参数，当两个线程以不同的参数顺序交换两个相同的实例时，会发生死锁。
+
+- `std::lock()` 可以一次性锁多个互斥量，并且没有死锁风险。用 `lock_guard` 保证释放锁。
+
+  ```c++
+  // 这里的std::lock()需要包含<mutex>头文件
+  class some_big_object;
+  void swap(some_big_object& lhs,some_big_object& rhs);
+  class X
+  {
+  private:
+    some_big_object some_detail;
+    std::mutex m;
+  public:
+    X(some_big_object const& sd):some_detail(sd){}
+  
+    friend void swap(X& lhs, X& rhs)
+    {
+      if(&lhs==&rhs)
+        return;
+      std::lock(lhs.m,rhs.m); // 1
+      std::lock_guard<std::mutex> lock_a(lhs.m,std::adopt_lock); // 2
+      std::lock_guard<std::mutex> lock_b(rhs.m,std::adopt_lock); // 3
+      swap(lhs.some_detail,rhs.some_detail);
+    }
+  };
+  ```
+
+**3.2.5 避免死锁的指导** 
+
+- 避免嵌套锁
+- 避免再持有锁时调用用户提供的代码
+- 使用固定顺序获取锁
+- 使用锁的层次结构
+- 超越锁的延申拓展：死锁也会发生再任何同步事件中。
+
+**3.2.6 std::unique_lock 灵活的锁**
+
+同 `std::lock_guard()` ，但有更多的可配置项。
+
+**3.2.7 不同域中互斥量所有权的传递**
+
+`std::unique_lock` 可移动
+
+**3.2.8 锁的粒度**
+
+##### 3.3 保护共享数据的替代措施
+
+**3.3.1保护数据的初始化过程**
+
+- 延迟初始化。在并发环境中，会使线程序列化。采用双重锁模式，会出现条件竞争。
+- 可以通过 `std::once_flag` 和 `std::call_once` 来处理这种情况。
+
+**3.3.2 保护很少更新的数据**
+
+- 如 DNS 缓存表。读取/写入都使用互斥锁会降低并发性。可以采用读写锁
+- `boost::shared_mutex` 通过 `boost::shared_lock()` 可以进行共享锁，通过 `std::lock_guard` 可以进行独享锁。
+
+**3.3.3 嵌套锁**
+
+- 同一个线程多次对 `std::mutex` 再次上锁会出错。`std::rucursive__mutex` 能实现多次上锁。
+- 嵌套锁一般用在可并发访问的类上。如一个成员函数调用另一个成员函数。也可以将其提取为一个私有函数。
+
+#### 第四章 同步并发操作
+
+##### 4.1 等待一个事件或其他条件
+
+有三种等待方式：
+
+1. 不断检查任务是否完成的标准（互斥量）。会降低性能。
+
+2. 休眠一段时间检查一次。休眠时长无法估计。
+
+   `std::this_thread::sleep_for(std::chrono::milliseconds(100));  // 2 休眠100ms`
+
+3. 通过线程触发等待事件的机制。称为条件变量
+
+**4.1.1 等待条件达成**
+
+C++标准库对条件变量有两套实现：`std::condition_variable`和`std::condition_variable_any`。这两个实现都包含在`<condition_variable>`头文件的声明中。 `std::condition_variable_any` 较灵活但性能差，一般用第一个。两者都需要与一个互斥量一起才能工作(互斥量是为了同步)。
+
+```c++
+std::mutex mut;
+std::queue<data_chunk> data_queue;  // 1
+std::condition_variable data_cond;
+
+void data_preparation_thread()
+{
+  while(more_data_to_prepare())
+  {
+    data_chunk const data=prepare_data();
+    std::lock_guard<std::mutex> lk(mut);
+    data_queue.push(data);  // 2
+    data_cond.notify_one();  // 3
+  }
+}
+
+void data_processing_thread()
+{
+  while(true)
+  {
+    std::unique_lock<std::mutex> lk(mut);  // 4 使用 unique_lock
+    data_cond.wait(
+         lk,[]{return !data_queue.empty();});  // 5 不断获得互斥量并查询，直到查询为 true 才返回，为 false 会暂时释放互斥量，为 true 返回后持续占用互斥量
+    data_chunk data=data_queue.front();
+    data_queue.pop();
+    lk.unlock();  // 6 释放互斥量
+    process(data);
+    if(is_last_chunk(data))
+      break;
+  }
+}
+```
+
+**4.1.2 使用条件变量构建线程安全队列**
+
+##### 4.2 使用期望等待一次性事件
+
+
+
+#### 其他
+
+##### 进程的创建过程
+
+1. 一个新进程总是通过一个进程的复制来创建的，子进程拥有相同的环境，只是进程 ID 不一样。这个过程称为 forking（分叉）
+2. forking 之后，子进程的地址空间被新进程的数据覆盖，这是通过 exec 系统调用完成的。
+3. fork-exec 机制只改变的待执行的代码，而环境保持不变，包括输入和输出设备的配置，环境变量和优先级。
+4. Linux 的第一个进程 init（进程 ID 为 1）也是通过这种方法在 boot 阶段生成的，也叫 bootstrapping（引导） 阶段。
+5. 在一些情况下，即使进程不是由 init 生成的，也可能变为 init 的父进程：变为守护进程。
+6. 子进程结束，但没有被父进程 wait 处理，会变为僵尸进程。
+
+[Link](https://www.linuxtopia.org/online_books/introduction_to_linux/linux_Process_creation.html)
+
+##### 僵尸进程
+
+1. 僵尸进程指的是，子进程退出后，父进程还未调用 wait ，使得在进程表中还保存着子进程的实体。该实体用于父进程查看子进程的退出状态。父进程通过 wait 系统调用查看退出状态，并释放该实体。
+2. 父进程可以通过忽略 SIGCHLD 信号或者通过调用 sigaction 的 SA_NOCLDWAIT flag，这样子进程退出后其实体会立即销毁。
+3. 因为僵尸进程只是一个进程表中的实体，因此无法通过调用 kill 进行回收。但可以 kill 它的父进程（或者向父进程发送 SIGCHLD 信号，使其调用 wait），将子进程转交给 init 进程。init 进程会周期性地调用 wait 收割僵尸进程。
+4. 过多的僵尸进程会用尽进程号，在 32 位系统中，进程号默认范围为 32767.
+
+[Link](https://unix.stackexchange.com/questions/155012/how-does-linux-handles-zombie-process)

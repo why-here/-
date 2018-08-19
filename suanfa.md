@@ -596,6 +596,8 @@ vector<int> inorderTraversal(TreeNode* root) {
 - 最小生成树
 - 最短路径
 
+LRU 算法，Tier 树，字符串子串匹配，回文 
+
 ## 11  智力题
 
 ### 11-1 过河
