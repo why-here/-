@@ -993,7 +993,7 @@ session 退出流程：
 
 **3.3.1保护数据的初始化过程**
 
-- 延迟初始化。在并发环境中，会使线程序列化。采用双重锁模式，会出现条件竞争。
+- 延迟初始化。在并发环境中，会使线程序列化。采用双重检查模式，会出现条件竞争。
 - 可以通过 `std::once_flag` 和 `std::call_once` 来处理这种情况。
 
 **3.3.2 保护很少更新的数据**
@@ -1003,7 +1003,7 @@ session 退出流程：
 
 **3.3.3 嵌套锁**
 
-- 同一个线程多次对 `std::mutex` 再次上锁会出错。`std::rucursive__mutex` 能实现多次上锁。
+- 同一个线程多次对 `std::mutex` 再次上锁会出错。`std::recursive__mutex` 能实现多次上锁。
 - 嵌套锁一般用在可并发访问的类上。如一个成员函数调用另一个成员函数。也可以将其提取为一个私有函数。
 
 #### 第四章 同步并发操作
@@ -1046,7 +1046,7 @@ void data_processing_thread()
   {
     std::unique_lock<std::mutex> lk(mut);  // 4 使用 unique_lock
     data_cond.wait(
-         lk,[]{return !data_queue.empty();});  // 5 不断获得互斥量并查询，直到查询为 true 才返回，为 false 会暂时释放互斥量，为 true 返回后持续占用互斥量
+         lk,[]{return !data_queue.empty();});  // 5 获得互斥量并查询，直到查询为 true 才返回，为 false 会暂时释放互斥量，并等待下一个通知，为 true 返回后持续占用互斥量
     data_chunk data=data_queue.front();
     data_queue.pop();
     lk.unlock();  // 6 释放互斥量
@@ -1272,6 +1272,10 @@ bool wait_loop()
 休眠超时处理函数分别是`std::this_thread::sleep_for()`和`std::this_thread::sleep_until()` 
 
 `std::mutex`和`std::recursive_mutex`都不支持超时锁，但是`std::timed_mutex`和`std::recursive_timed_mutex`支持。这两种类型也有try_lock_for()和try_lock_until()成员函数，可以在一段时期内尝试，或在指定时间点前获取互斥锁。 
+
+##### 4.4 使用同步操作简化代码
+
+
 
 #### 其他
 
