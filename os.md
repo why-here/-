@@ -1038,7 +1038,217 @@ void data_processing_thread()
 
 ##### 4.2 使用期望等待一次性事件
 
+一个线程需要等待一个特定的一次性事件时。在C++标准库中，有两种“期望”：
 
+- 唯一期望 `std::future<>`  ，只能与一个指定事件相关联
+- 共享期望 `std::shared_future<>` ，能关联多个事件，所有实例会在同时变为就绪状态。
+
+**4.2.1 带返回值的后台任务**
+
+`std::thread`不提供直接接收返回值的机制。 需要`std::async`函数模板(也是在头文`<future>`中声明的)了。步骤：
+
+1.  使用`std::async`启动一个异步任务，返回一个 `std::future`对象；
+2. 需要结果时，调用该 future 对象的 get() 方法；
+3. 线程阻塞直到“期望”状态为就绪为止；
+4. 得到结果。
+
+```c++
+#include <future>
+#include <iostream>
+
+int find_the_answer_to_ltuae();
+void do_other_stuff();
+int main()
+{
+  std::future<int> the_answer=std::async(find_the_answer_to_ltuae);
+  do_other_stuff();
+  std::cout<<"The answer is "<<the_answer.get()<<std::endl;
+}
+```
+
+`std::async`允许你通过添加额外的调用参数，向函数传递额外的参数。 类似 `std::thread` 。
+
+决定任务的运行方式（是否在新线程）和开始运行时间。
+
+1. `std::launch` ：
+2. `std::launch::defered`，用来表明函数调用被延迟到wait()或get()函数调用时才执行
+3. `std::launch::async` 表明函数必须在其所在的独立线程上执行 
+4.  `std::launch::deferred | std::launch::async`表明实现可以选择这两种方式的一种。 
+
+```c++
+auto f6=std::async(std::launch::async,Y(),1.2);  // 在新线程上执行
+auto f7=std::async(std::launch::deferred,baz,std::ref(x));  // 在wait()或get()调用时执行
+```
+
+**4.2.2 任务与期望**
+
+`std::packaged_task<>`对一个函数或可调用对象，绑定一个期望。当`std::packaged_task<>` 对象被调用，它就会调用相关函数或可调用对象，将期望状态置为就绪，返回值也会被存储为相关数据。 
+
+`std::packaged_task<>`的模板参数是一个函数签名。如 `std::packaged_task<double(double)>` 。函数的返回类型作为 future 的数据类型。示例
+
+```c++
+#include <deque>
+#include <mutex>
+#include <future>
+#include <thread>
+#include <utility>
+
+std::mutex m;
+std::deque<std::packaged_task<void()> > tasks;
+
+bool gui_shutdown_message_received();
+void get_and_process_gui_message();
+
+void gui_thread()  // 1
+{
+  while(!gui_shutdown_message_received())  // 2
+  {
+    get_and_process_gui_message();  // 3
+    std::packaged_task<void()> task;
+    {
+      std::lock_guard<std::mutex> lk(m);
+      if(tasks.empty())  // 4
+        continue;
+      task=std::move(tasks.front());  // 5
+      tasks.pop_front();
+    }
+    task();  // 6
+  }
+}
+
+std::thread gui_bg_thread(gui_thread);
+
+template<typename Func>
+std::future<void> post_task_for_gui_thread(Func f)
+{
+  std::packaged_task<void()> task(f);  // 7
+  std::future<void> res=task.get_future();  // 8
+  std::lock_guard<std::mutex> lk(m);  // 9
+  tasks.push_back(std::move(task));  // 10
+  return res;
+}
+```
+
+**4.2.3 使用 std::promises**
+
+更为简单易用的任务封装。考虑一个线程处理多个连接事件。`std::promise<T>`提供设定值的方式(类型为T)，这个类型会和 `std::future<T>` 对象相关联。 当 promise 设置完毕（调用 `set_value`），future 的状态就变为就绪。
+
+**4.2.4 为“期望”存储“异常”**
+
+函数作为`std::async`的一部分时，当在调用时抛出一个异常，那么这个异常就会存储到“期望”的结果数据中，之后“期望”的状态被置为“就绪”，之后调用 get() 会抛出这个存储的异常。
+
+`std::packaged_task` 打包的任务也是一样。
+
+通过函数的显式调用，`std::promise`也能提供同样的功能。当你希望存入的是一个异常而非一个数值时，你就需要调用set_exception()成员函数，而非set_value()。这通常是用在一个catch块中。
+
+```c++
+extern std::promise<double> some_promise;
+try
+{
+  some_promise.set_value(calculate_value());
+}
+catch(...)
+{
+  some_promise.set_exception(std::current_exception());
+  // some_promise.set_exception(std::copy_exception(std::logic_error("foo "))); 存储一个新异常
+}
+```
+
+**4.2.5 多个线程的等待**
+
+`std::future`是只移动的，所以其所有权可以在不同的实例中互相传递，但是只有一个实例可以获得特定的同步结果；而`std::shared_future`实例是可拷贝的，所以多个对象可以引用同一关联“期望”的结果。 
+
+`std::shared_future` 使用方案：
+
+1. 使用锁来保护一个 `std::shared_future` ，保存同步。
+2. 每个线程都通过自己拥有的`std::shared_future`对象获取结果，那么多个线程访问共享同步结果就是安全的。 
+
+将 future 转为 shared_future ：
+
+```c++
+std::promise<int> p;
+std::future<int> f(p.get_future());
+std::shared_future<int> sf(std::move(f)); // 显示转移
+std::promise<std::string> p;
+std::shared_future<std::string> sf(p.get_future());  // 1 隐式转移所有权
+std::promise< std::map< SomeIndexType, SomeDataType, SomeComparator,
+     SomeAllocator>::iterator> p;
+auto sf=p.get_future().share();  // 显示转移
+```
+
+##### 4.3 限定等待时间
+
+第一种方式，需要指定一段时间(例如，30毫秒)；第二种方式，就是指定一个时间点(例如，协调世界时[UTC]17:30:15.045987023，2011年11月30日)。 
+
+多数等待函数提供变量，对两种超时方式进行处理。处理持续时间的变量以“_for”作为后缀，处理绝对时间的变量以"_until"作为后缀。 如`std::condition_variable`的两个成员函数 wait_for() 和 wait_until() 成员函数。
+
+**4.3.1 时钟**
+
+时钟是一个类，提供了四种不同的信息： 
+
+- 现在时间
+- 时间类型
+- 时钟节拍
+- 通过时钟节拍的分布，判断时钟是否稳定
+
+**4.3.2 时延**
+
+`std::chrono::duration<short, std::ratio<60, 1>>` 以分钟为单位，存储在 short 类型中。
+
+`std::chrono::duration<double, std::ratio<1, 1000>>` 以毫秒为单位
+
+延时变量提供一系列预定义类型 ：nanoseconds[纳秒] , microseconds[微秒] , milliseconds[毫秒] , seconds[秒] , minutes[分]和hours[时]。 
+
+```c++
+std::chrono::milliseconds ms(54802);
+std::chrono::seconds s=
+       std::chrono::duration_cast<std::chrono::seconds>(ms); // 时间转换
+```
+
+使用：
+
+```c++
+std::future<int> f=std::async(some_task);
+if(f.wait_for(std::chrono::milliseconds(35))==std::future_status::ready)
+  do_something_with(f.get());
+```
+
+**4.3.3 时间点**
+
+时钟的时间点可以用`std::chrono::time_point<>`的类型模板实例来表示 
+
+可以通过`std::chrono::time_point<>`实例来加/减时延，来获得一个新的时间点，所以`std::chrono::hight_resolution_clock::now() + std::chrono::nanoseconds(500)`将得到500纳秒后的时间。 
+
+示例：
+
+```c++
+#include <condition_variable>
+#include <mutex>
+#include <chrono>
+
+std::condition_variable cv;
+bool done;
+std::mutex m;
+
+bool wait_loop()
+{
+  auto const timeout= std::chrono::steady_clock::now()+
+      std::chrono::milliseconds(500);
+  std::unique_lock<std::mutex> lk(m);
+  while(!done)
+  {
+    if(cv.wait_until(lk,timeout)==std::cv_status::timeout)
+      break;
+  }
+  return done;
+}
+```
+
+**4.3.4 具有超时功能的函数**
+
+休眠超时处理函数分别是`std::this_thread::sleep_for()`和`std::this_thread::sleep_until()` 
+
+`std::mutex`和`std::recursive_mutex`都不支持超时锁，但是`std::timed_mutex`和`std::recursive_timed_mutex`支持。这两种类型也有try_lock_for()和try_lock_until()成员函数，可以在一段时期内尝试，或在指定时间点前获取互斥锁。 
 
 #### 其他
 
