@@ -2,6 +2,44 @@
 
 [socket疑问解答](https://www.cnblogs.com/kex1n/p/6501977.html)
 
+##### TCP/UDP 区别
+
+- TCP 是面向连接，UDP 是无连接，即发送数据之前不需要建立连接；而 TCP 建立连接和断开连接分别需要三次握手和四次挥手；
+- TCP 是字节流协议，UDP 是报文协议。TCP 需要上层限定消息的边界。否则会出现“粘包”，“拆包”现象。
+- TCP 提供可靠的数据传输，UDP 不保证可靠交付；TCP 保证字节流无差错，不丢失，不重复且按序到达。
+- TCP 有流量控制和拥塞控制，保证传输的有效性。
+- TCP 连接是点到点的传输，UDP 支持一对一，一对多，多对一和多对多的交互通信。
+- TCP 首部开销 20 字节，UDP 的首部开销小，只有 8 个字节。
+
+[Link](https://blog.csdn.net/Li_Ning_/article/details/52117463)
+
+##### Time_Wait 状态的作用
+
+- Time_W8ait 状态将保持 2 MSL（最大段生存时间），保证被动关闭的一方能收到最后发出去的 ACK。若没有 Time_Wait，被动关闭一方没有收到 ACK，重发 Fin，将会收到 RST 信令。
+-  Time_Wait 保持 2 MSL 时长，还能保证其发送的重复分组在网络中消失。避免旧分组被当成新连接的数据而被接收。
+
+##### 避免大量 Time_Wait 状态的连接
+
+- net.ipv4.tcp_tw_reuse = 1 表示开启重用。允许将 TIME-WAIT sockets重新用于新的TCP连接，默认为0，表示关闭； 
+- net.ipv4.tcp_tw_recycle = 1 表示开启TCP连接中 TIME-WAIT sockets的快速回收，默认为0，表示关闭。 
+- net.ipv4.tcp_fin_timeout = 30 修改系統默认的 TIMEOUT 时间，改为 30s
+- net.ipv4.tcp_max_tw_buckets 控制并发的 TIME_WAIT 的数量，默认值是 180000，如果超限，那么，系统会把多的给 destory 掉。
+- 不主动断开连接；
+
+[Link](http://coolnull.com/3605.html) [Link](https://coolshell.cn/articles/11564.html)
+
+##### SYN 超时以及 SYN 攻击
+
+- 服务器收到 SYN，但是没收到 ACK。连接处于中间状态，服务器会重发 SYN-ACK，Linux 默认重发 5 次，每次重发时间翻翻，1s，2s，4s，8s，16s，第 5 次发出后还要等 32s 才知道第 5 次也超时了，总共 63s。
+- 一些恶意的人就为此制造了 SYN Flood 攻击——给服务器发了一个 SYN 后，就下线了，于是服务器需要默认等 63s 才会断开连接，这样，攻击者就可以把服务器的 SYN 连接的队列耗尽，让正常的连接请求不能处理。
+- net.ipv4.tcp_syncookies = 1 表示开启 SYN Cookies。当出现 SYN 等待队列溢出时，启用 cookies 来处理可防范少量 SYN 攻击，默认为 0 表示关闭；
+- 调整三个 TCP 参数可供你选择，第一个是：tcp_synack_retries 可以用他来减少重试次数；第二个是：tcp_max_syn_backlog，可以增大 SYN 连接数；第三个是：tcp_abort_on_overflow 处理不过来干脆就直接拒绝连接了。
+
+##### 分组序号初始化
+
+- 每 4 微秒对 ISN 做加一操作，直到超过 2^32，又从 0 开始。这样，一个 ISN 的周期大约是4.55 个小时。
+- 当网络断开重连后，避免旧分组被当成新分组而被接收。
+
 ##### C10K / C1000K 问题
 
 - 最初服务器，新到来一个TCP连接，就需要分配一个进程。如果有10K个Client 就需要创建 1W 个进程。但单机无法承受。
