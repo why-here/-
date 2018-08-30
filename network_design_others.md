@@ -2,6 +2,30 @@
 
 [socket疑问解答](https://www.cnblogs.com/kex1n/p/6501977.html)
 
+##### select / poll / epoll 区别
+
+文件描述符限制：
+
+- select / poll / epoll 都有进程的文件描述符数量的限制，默认 1024 个。可以通过 `ulimit -n` 临时修改，或修改 `/etc/security/limits.conf` 文件。其次，系统也有总的文件描述符的数量限制，默认 10 万个左右。参考 [ideawu-C1000k](http://www.ideawu.net/blog/archives/740.html) 。
+- 其次 select 的 fd_set 也有范围，fd_set 是一个总共 1024 bit 的数组，最多只能标记 1024 个连接，select 能处理三种类型的 IO 事件。因此，突破了进程 1024 文件描述符的限制后，select 最多能监视 1024 * 3 个文件描述符。
+
+select ：
+
+- 优点：可移植性好；超时值提供更好的精度：微秒，poll 是毫秒。
+- 缺点：fd_set 有大小限制；需要在内核态和用户态间反复复制 fd_set；有 IO 事件时，需要遍历 fd_set 找到对应的 fd；每次都需要重新设置 fd_set；需要计算得到最大的 fd 。
+
+poll ：
+
+- 优点：通过 pollfd 结构体数组传递监测的 fd 和 event ，没有额外 fd 数量限制；pollfd 只需要被初始化一次，无需重复设置。
+- 缺点：pollfd 数组仍需要在用户态和内核态间复制；仍需要遍历整个 pollfd 数组。
+
+epoll：
+
+- 优点：适合需要操作大量 fd 的程序，fd 只在内核态和用户态直接拷贝一次；同时无需遍历所有 fd，只需遍历传入的固定大小的 epoll_event 数组。支持水平触发（LT）和边缘触发（ET）。
+- LT 和 ET 的区别：ET 只有在状态变换才会返回该事件，LT 只要满足条件就能返回该事件。如监测一个 PIPE ，当第一次有数据可读时，ET or LT 都会返回该事件；如果程序只读取部分数据，并且没有新数据被写到 PIPE 中，ET 下一次就不会返回，而 LT 会返回。[epoll wiki](https://en.wikipedia.org/wiki/Epoll) 
+
+[Link](https://blog.csdn.net/lixungogogo/article/details/52226501) [Linux IO](https://segmentfault.com/a/1190000003063859)
+
 ##### TCP/UDP 区别
 
 - TCP 是面向连接，UDP 是无连接，即发送数据之前不需要建立连接；而 TCP 建立连接和断开连接分别需要三次握手和四次挥手；
@@ -15,7 +39,7 @@
 
 ##### Time_Wait 状态的作用
 
-- Time_W8ait 状态将保持 2 MSL（最大段生存时间），保证被动关闭的一方能收到最后发出去的 ACK。若没有 Time_Wait，被动关闭一方没有收到 ACK，重发 Fin，将会收到 RST 信令。
+- Time_Wait 状态将保持 2 MSL（最大段生存时间），保证被动关闭的一方能收到最后发出去的 ACK。若没有 Time_Wait，被动关闭一方没有收到 ACK，重发 Fin，将会收到 RST 信令。
 -  Time_Wait 保持 2 MSL 时长，还能保证其发送的重复分组在网络中消失。避免旧分组被当成新连接的数据而被接收。
 
 ##### 避免大量 Time_Wait 状态的连接
