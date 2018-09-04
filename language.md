@@ -323,7 +323,7 @@ boolean fromStack(void *ptr) {
 >
 > >  多态的函数调用语句被编译成一系列根据基类指针所指向的（或基类引用所引用的）对象中存放的虚函数表的地址，在虚函数表中查找虚函数地址，并调用虚函数的指令。
 > >
-> >  [Link](https://www.jianshu.com/p/3a404ab34936) [Link](https://blog.csdn.net/lihao21/article/details/50688337)
+> >  [Link](https://blog.csdn.net/lihao21/article/details/50688337)
 >
 > 虚函数表解析 [Link](https://blog.csdn.net/haoel/article/details/1948051)
 
@@ -506,7 +506,7 @@ boolean fromStack(void *ptr) {
 >
 > 但程序员也可以通过重载操作符，改用其他内存来实现自由存储，例如全局变量做的对象池，这时自由存储区就区别于堆了。 
 
-​	[Link](https://www.cnblogs.com/QG-whz/p/5060894.html)
+	[Link](https://www.cnblogs.com/QG-whz/p/5060894.html)
 
 ##### 程序内存分布
 
@@ -687,6 +687,7 @@ boolean fromStack(void *ptr) {
 - 智能指针，用来管理动态对象，负责自动释放所指向的对象
 - shared_ptr <memory>
 - make_shared 模板函数：分配一个对象并初始化，返回此对象的 shared_ptr 
+
   - make_shared(10, '9');
 
 - shared_ptr 拷贝/赋值 auto p(q); auto p = q;
