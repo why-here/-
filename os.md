@@ -56,6 +56,15 @@
 
 #### 操作系统
 
+##### stack / heap diff
+
+- stack 由编译器自动分配释放；heap 需代码（new/delete or malloc/free）控制其分配和释放。
+- stack 是自动分配的，速度较快；堆是由 new 分配的内存，一般速度较慢，而且容易产生内存碎片。
+- 申请大小限制：栈最大容量一般为 8 MB；堆可申请的大小约为进程的用户态进程空间大小。[Link](https://blog.csdn.net/xxxxxx91116/article/details/10068555)
+- 堆需要遍历记录空闲内存地址的链表，来分配；new[] 一般会在首地址记录申请的大小，使 delete 能正确释放内存。
+
+[Link](https://www.zhihu.com/question/19729973)
+
 ##### 分页与虚拟内存
 
 - 内存访问更为安全
@@ -108,7 +117,7 @@
 > >
 >  - 共享内存 (share memory)
 > >
-> >   使得多个进程可以可以直接读写同一块内存空间，是最快的可用 IPC 形式。需要依靠某种同步机制（如信号量）来达到进程间的同步及互斥。
+> >使得多个进程可以可以直接读写同一块内存空间，是最快的可用 IPC 形式。需要依靠某种同步机制（如信号量）来达到进程间的同步及互斥。
 > >
 >  - 信号量 (semaphore)
 > >
@@ -140,6 +149,13 @@
 > >  [Link](https://www.jianshu.com/p/c1015f5ffa74)
 
 ##### 进程与线程的区别
+
+- 进程是资源分配的最小单位；线程是程序执行的最小单位。
+- 进程拥有自己的独立地址空间，每启动一个进程，系统就需要为其分配地址空间，而线程共享进程的地址空间，因此创建/切换线程的开销要小得多。
+- 线程间的通信更方便，同一进程下的线程共享全局变量、静态变量等数据。但要处理好同步和互斥。
+- 但是多进程程序更健壮，多线程程序只要有一个线程死掉，整个进程也死掉了，而一个进程死掉并不会对另外一个进程造成影响，因为进程有自己独立的地址空间。
+
+[Link](https://foofish.net/thread-and-process.html)
 
 > - 一个程序至少有一个进程,一个进程至少有一个线程；
 >
@@ -530,6 +546,8 @@ session 退出流程：
 ##### select / poll / epoll
 
 [Link](https://blog.csdn.net/lixungogogo/article/details/52226501)
+
+文件描述符限制：为什么select打开的FD数量有限制，而poll、epoll等打开的FD数量没有限制？ - 用心阁的回答 - 知乎 https://www.zhihu.com/question/37219281/answer/74003967 
 
 ### C++ 并发编程
 
@@ -993,7 +1011,7 @@ session 退出流程：
 
 **3.3.1保护数据的初始化过程**
 
-- 延迟初始化。在并发环境中，会使线程序列化。采用双重锁模式，会出现条件竞争。
+- 延迟初始化。在并发环境中，会使线程序列化。采用双重检查模式，会出现条件竞争。
 - 可以通过 `std::once_flag` 和 `std::call_once` 来处理这种情况。
 
 **3.3.2 保护很少更新的数据**
@@ -1003,7 +1021,7 @@ session 退出流程：
 
 **3.3.3 嵌套锁**
 
-- 同一个线程多次对 `std::mutex` 再次上锁会出错。`std::rucursive__mutex` 能实现多次上锁。
+- 同一个线程多次对 `std::mutex` 再次上锁会出错。`std::recursive__mutex` 能实现多次上锁。
 - 嵌套锁一般用在可并发访问的类上。如一个成员函数调用另一个成员函数。也可以将其提取为一个私有函数。
 
 #### 第四章 同步并发操作
@@ -1046,7 +1064,7 @@ void data_processing_thread()
   {
     std::unique_lock<std::mutex> lk(mut);  // 4 使用 unique_lock
     data_cond.wait(
-         lk,[]{return !data_queue.empty();});  // 5 不断获得互斥量并查询，直到查询为 true 才返回，为 false 会暂时释放互斥量，为 true 返回后持续占用互斥量
+         lk,[]{return !data_queue.empty();});  // 5 获得互斥量并查询，直到查询为 true 才返回，为 false 会暂时释放互斥量，并等待下一个通知，为 true 返回后持续占用互斥量
     data_chunk data=data_queue.front();
     data_queue.pop();
     lk.unlock();  // 6 释放互斥量
@@ -1272,6 +1290,135 @@ bool wait_loop()
 休眠超时处理函数分别是`std::this_thread::sleep_for()`和`std::this_thread::sleep_until()` 
 
 `std::mutex`和`std::recursive_mutex`都不支持超时锁，但是`std::timed_mutex`和`std::recursive_timed_mutex`支持。这两种类型也有try_lock_for()和try_lock_until()成员函数，可以在一段时期内尝试，或在指定时间点前获取互斥锁。 
+
+##### 4.4 使用同步操作简化代码
+
+#### 第五章 C++内存模型和原子类型操作
+
+##### 5.1 内存模型基础
+
+##### 5.2 C++ 中的原子操作和原子类型
+
+*原子操作* 是个不可分割的操作。 
+
+**5.2.1 标准原子类型**
+
+定义在 <atomic> 中。这些类型上的所有操作都是原子的。也可以用互斥锁来 *模拟* 原子操作。`is_lock_free()`成员函数可以查是否是“真”原子操作。
+
+`std::atomic_flag`类型是一个简单的布尔标志，操作都需要是无锁的； 
+
+剩下的原子类型都可以通过特化`std::atomic<>`类型模板而访问到。`std::atomic<>`类模板也可以使用用户定义类型创建对应的原子变量。
+
+操作分为三类：
+
+1. Store 操作，可选如下顺序：memory_order_relaxed, memory_order_release, memory_order_seq_cst。
+2. Load 操作，可选如下顺序：memory_order_relaxed, memory_order_consume, memory_order_acquire, memory_order_seq_cst。
+3. Read-modify-write(读-改-写) 操作，可选如下顺序：memory_order_relaxed, memory_order_consume, memory_order_acquire, memory_order_release, memory_order_acq_rel, memory_order_seq_cst。
+   所有操作的默认顺序都是memory_order_seq_cst。
+
+**5.2.2 std::atomic_flag 的相关操作**
+
+```c++
+std::atomic_flag f = ATOMIC_FLAG_INIT; // 必须初始化
+```
+
+只能调用 clear() 成员函数，和 test_and_set() 成员函数。 clear() 是一个 Store 操作。test_and_set()是一个“读-改-写”操作。
+
+所有原子类型以及 `std::atomic_flag` 对象不能拷贝构造，不能赋值。
+
+**5.2.3 std::atomic 的相关操作**
+
+最基本的原子整型类型就是`std::atomic<bool>`。
+
+```c++
+std::atomic<bool> b(true);
+b=false;
+```
+
+赋值操作通过返回值(返回相关的非原子类型)完成，而非返回引用。 
+
+```c++
+std::atomic<bool> b;
+bool x=b.load(std::memory_order_acquire);
+b.store(true);  // 代替 clear()
+x=b.exchange(false, std::memory_order_acq_rel); // 代替 test_and_set() 当当前值与预期值一致时，存储新值的操作。
+```
+
+存储一个新值(或旧值)取决于当前值 ：“比较/交换” ；表现为 compare_exchange_weak() 和 compare_exchange_strong() 成员函数。
+
+“比较/交换”操作是原子类型编程的基石；它比较原子变量的当前值和一个期望值，当两值相等时，存储提供值。当两值不等，期望值就会被更新为原子变量中的值。“比较/交换”函数值是一个bool变量，当返回true时执行存储操作，当false则更新期望值。
+
+compare_exchange_weak() 即使与期望值相同也不一定设置成功。通常使用一个循环：
+
+```c++
+bool expected=false;
+extern atomic<bool> b; // 设置些什么
+while(!b.compare_exchange_weak(expected,true) && !expected);
+```
+
+经历每次循环的时候，期望值都会重新加载，所以当没有其他线程同时修改期望时，循环中对compare_exchange_weak()或compare_exchange_strong()的调用都会在下一次(第二次)成功。 
+
+`std::atomic<bool>`和`std::atomic_flag`的不同之处在于，`std::atomic<bool>`不是无锁的；为了保证操作的原子性，其实现中需要一个内置的互斥量。 
+
+**5.2.4 std::atomic，指针运算**
+
+`std::atomic<T*>`为指针运算提供新的操作。基本操作有fetch_add()和fetch_sub()提供，它们在存储地址上做原子加法和减法，为+=, -=, ++和--提供简易的封装。fetch_add()和fetch_sub()的返回值略有不同(所以x.fetch_add(3)让x指向第四个元素，并且函数返回指向第一个元素的地址)。
+
+```c++
+class Foo{};
+Foo some_array[5];
+std::atomic<Foo*> p(some_array);
+Foo* x=p.fetch_add(2);  // p加2，并返回原始值
+assert(x==some_array);
+assert(p.load()==&some_array[2]);
+x=(p-=1);  // p减1，并返回原始值
+assert(x==&some_array[1]);
+assert(p.load()==&some_array[1]);
+```
+
+**5.2.6 std:atomic<> 主要类的模板**
+
+不是任何自定义类型都可以使用`std::atomic<>`的：需要满足一定的标准才行。
+
+这个类型必须有拷贝赋值运算符。这就意味着这个类型不能有任何虚函数或虚基类，以及必须使用编译器创建的拷贝赋值操作。你不仅需要确定，一个UDT类型对象可以使用memcpy()进行拷贝，还要确定其对象可以使用memcmp()对位进行比较。
+
+**5.2.7 原子操作的释放函数**
+
+##### 5.3 同步操作和强制排序
+
+**5.3.1 同步发生**
+
+**5.3.2 先行发生**
+
+**5.3.3 原子操作的内存顺序**
+
+仅代表三种内存模型：排序一致序列(*sequentially consistent*)，获取-释放序列(*memory_order_consume, memory_order_acquire, memory_order_release和memory_order_acq_rel*)，和自由序列(*memory_order_relaxed*)。 
+
+#### 第九章 高级线程管理
+
+##### 9.1 线程池
+
+几个关键性的设计问题，比如：可使用的线程数量，高效的任务分配方式，以及是否需要等待一个任务完成。 
+
+**9.1.1 最简单的线程池**
+
+作为最简单的线程池，其拥有固定数量的工作线程(通常工作线程数量与`std::thread::hardware_concurrency()`相同)。当工作需要完成时，可以调用函数将任务挂在任务队列中。每个工作线程都会从任务队列上获取任务，然后执行这个任务，执行完成后再回来获取新的任务。在最简单的线程池中，线程就不需要等待其他线程完成对应任务了。如果需要等待，就需要对同步进行管理。
+
+**9.1.2 等待提交到线程池中的任务**
+
+submit()函数①返回一个`std::future<>`保存任务的返回值，并且允许调用者等待任务完全结束。
+
+**9.1.3 等待依赖任务**
+
+**9.1.4 避免队列中的任务竞争**
+
+这意味着随着处理器的增加，在任务队列上就会有很多的竞争，这会让性能下降。使用无锁队列会让任务没有明显的等待，但是乒乓缓存会消耗大量的时间。
+
+为了避免乒乓缓存，每个线程建立独立的任务队列。这样，每个线程就会将新任务放在自己的任务队列上，并且当线程上的任务队列没有任务时，去全局的任务列表中取任务。
+
+**9.1.5 窃取任务**
+
+##### 9.2 中断进程
 
 #### 其他
 
