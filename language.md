@@ -1,5 +1,49 @@
 #### C++ 特性
 
+##### static 和 const
+
+static 作用：
+
+- 隐藏：所有未加 static 前缀的全局变量和函数都具有全局可见性。如果加了static，就会对其它源文件隐藏。利用这一特性可以在不同的文件中定义同名函数和同名变量，而不必担心命名冲突。
+- 变量内容持久化：存储在静态数据区的变量会在程序刚开始运行时就完成初始化，也是唯一的一次初始化。共有两种变量存储在静态存储区：全局变量和static变量，只不过和全局变量比起来，static可以控制变量的可见范围。
+- 默认初始化为0：其实全局变量也具备这一属性，因为全局变量也存储在静态数据区。
+
+const 作用：
+
+- const就是只读的意思,只在声明中使用;
+
+[Link](http://blog.sina.com.cn/s/blog_668aae780101m4ex.html)
+
+##### 静态函数/变量
+
+- 静态成员变量在类中仅仅是声明，没有定义，所以要在类的外面定义，实际上是给静态成员变量分配内存。如果不加定义就会报错，初始化是赋一个初始值，而定义是分配内存。
+
+- 静态成员函数没有 this 指针，只能访问静态成员（包括静态成员变量和静态成员函数）。
+
+- 可以使用静态成员变量清楚了解构造与析构函数的调用情况。
+
+  [Link](http://www.runoob.com/cplusplus/cpp-static-members.html)
+
+##### STL 都有什么
+
+参考 [STL Wiki](https://en.wikipedia.org/wiki/Standard_Template_Library) / [STL GeekforGeek](https://www.geeksforgeeks.org/the-c-standard-template-library-stl/)
+
+STL 包含四大部分 algorithms, containers, functions 以及 iterators。
+
+containers 包含：
+
+- 简单容器：pair；
+- 序列容器：vector，deque，list，forward_list，arrays；
+- 序列容器适配器：queue，stack，priority_queue
+- 关联容器：set，multiset，map，multimap，unordered_set，unordered_map；
+- 其他容器：bitset，valarray；
+
+algorithms 包含：参考 [维基教科书](https://zh.wikibooks.org/zh-hans/C%2B%2B/STL/Algorithm#%E6%8E%92%E5%BA%8F)
+
+- 排序：sort
+- 搜索：binary_search，find
+- 。。。
+
 ##### 引用原理：
 
 c++标准没有说引用是如何实现的。通常是通过常量指针实现。
@@ -448,16 +492,6 @@ boolean fromStack(void *ptr) {
 
   [Link](http://jeremybai.github.io/blog/2014/09/05/memcpy)
 
-##### 静态函数/变量
-
-- 静态成员变量在类中仅仅是声明，没有定义，所以要在类的外面定义，实际上是给静态成员变量分配内存。如果不加定义就会报错，初始化是赋一个初始值，而定义是分配内存。
-
-- 静态成员函数没有 this 指针，只能访问静态成员（包括静态成员变量和静态成员函数）。
-
-  - 可以使用静态成员变量清楚了解构造与析构函数的调用情况。
-
-  [Link](http://www.runoob.com/cplusplus/cpp-static-members.html)
-
 ##### C 可变参数
 
   函数参数的传递存储在栈中,从右至左压入栈中,压栈过程为递减 
@@ -510,7 +544,7 @@ boolean fromStack(void *ptr) {
 >
 > 但程序员也可以通过重载操作符，改用其他内存来实现自由存储，例如全局变量做的对象池，这时自由存储区就区别于堆了。 
 
-​	[Link](https://www.cnblogs.com/QG-whz/p/5060894.html)
+	[Link](https://www.cnblogs.com/QG-whz/p/5060894.html)
 
 ##### 程序内存分布
 
@@ -691,6 +725,7 @@ boolean fromStack(void *ptr) {
 - 智能指针，用来管理动态对象，负责自动释放所指向的对象
 - shared_ptr <memory>
 - make_shared 模板函数：分配一个对象并初始化，返回此对象的 shared_ptr 
+
   - make_shared(10, '9');
 
 - shared_ptr 拷贝/赋值 auto p(q); auto p = q;
